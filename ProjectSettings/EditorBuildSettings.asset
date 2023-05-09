@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/MainMenuScene.unity
+    guid: b13df34f26dec234b863deded945d4d3
+  - enabled: 1
+    path: Assets/Scenes/GameModeScene.unity
+    guid: 76a468c3ef5fff048bf12e3910240146
+  - enabled: 1
+    path: Assets/Scenes/PvP.unity
+    guid: 8c9cfa26abfee488c85f1582747f6a02
+  m_configObjects:
+    com.unity.input.settings: {fileID: 11400000, guid: aad410f140e54d34a9eb2d9cb3d9f780, type: 2}
