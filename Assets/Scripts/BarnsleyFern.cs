@@ -5,9 +5,7 @@ using UnityEngine;
 public class BarnsleyFern : MonoBehaviour
 {
     public int numPoints = 20000;
-    // public float scale = 10f;
-    // public float xInit = 0f;
-    // public float yInit = 0f;
+
     private float nextX,nextY;
     private float x,y;
     private float r;
@@ -15,9 +13,13 @@ public class BarnsleyFern : MonoBehaviour
 
     void Start()
     {
+        BF();
+        // StartCoroutine(BF());
+    }
+    void BF(){
         for(int i = 0;i<numPoints;i++){
             r = Random.Range(0, 1f);
-            if (r < 0.01)
+        if (r < 0.01)
         {
             nextX = 0;
             nextY = 0.16f * y;
@@ -39,15 +41,13 @@ public class BarnsleyFern : MonoBehaviour
         }
         x = nextX;
         y = nextY;
-
+        // yield return new WaitForSeconds(0.01f);
         CreateDot(x,y);
         }
-        
     }
-
     void CreateDot(float x, float y)
     {
-        Instantiate(dot, new Vector3((x/5f), (y/5f)-4.8f, -1), Quaternion.identity);
+        Instantiate(dot, new Vector3((x/4f), (y/4f)-4.8f, -1), Quaternion.identity);
     }
 }
 

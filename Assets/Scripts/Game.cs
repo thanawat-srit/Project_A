@@ -8,6 +8,7 @@ using System;
 
 public class Game : MonoBehaviour
 {
+    public int turnEndGame =15;
     public GameObject chesspiece;
     public GameObject turnBarRed;
     public GameObject turnBarBlue;
@@ -36,7 +37,7 @@ public class Game : MonoBehaviour
     private int barR = 3;
     private int sBarB = -1;
     private int sBarR = -1;
-    private int roundCount = 1;
+    private int roundCount = 0;
 
     private GameObject[,] positions = new GameObject[8, 12];
     private List<GameObject> playerBlue = new List<GameObject>();
@@ -93,11 +94,16 @@ public class Game : MonoBehaviour
 
     public void Update()//-----------------------------------------------------------------------------------
     {
-        
-        CheckEndGame();
-
         SkipStatus();
-
+        CheckEndGame();
+        if(!gameOver && betweenRounds && !combatPhaseCheck){
+            StartCoroutine(ShowRound(roundText,1f));
+            roundSound.Play();
+            ResetStat();//ResetStat ----> Set Def & Set AtkTime---------
+            SaveEnergy();//SaveEnergy ----> Fill Energy-----------------
+            attackStatusImage.enabled = false;
+            betweenRounds = false;
+        }
         if(!combatPhaseCheck){
             BardBuff();
         }
@@ -105,10 +111,15 @@ public class Game : MonoBehaviour
         if (gameOver == true && Input.GetMouseButtonDown(0))
         {
             gameOver = false;
-            SceneManager.LoadScene(0);
+            SceneManager.LoadScene("PvP");
         }
-
+        if(currentPlayer=="red"){
+            skipRedButton.interactable = true;
+        }else if (currentPlayer=="blue"){
+            skipBlueButton.interactable = true;
+        }
         if(!betweenRounds){
+            
             if(currentPlayer == "red" && barB < 0 && barR < 0){
                 currentPlayer = "blue";
                 betweenRounds = true;
@@ -132,7 +143,13 @@ public class Game : MonoBehaviour
             }else if(checkSkipBlue && checkSkipRed){
                 betweenRounds = true;
                 CombatAndPrepair();
+                
             }
+        }
+        else
+        {
+            skipRedButton.interactable = false;
+            skipBlueButton.interactable = false;
         }
         
         
@@ -294,13 +311,33 @@ public class Game : MonoBehaviour
         }
     }
     private void CheckEndGame(){
-        if(playerRed.Count == 0 && playerBlue.Count == 0){
-            Winner("Tie");
-        }else if(playerRed.Count == 0){
-            Winner("Blue");
-        }else if(playerBlue.Count == 0){
-            Winner("Red");
+        if(roundCount > turnEndGame){
+            int redHp=0,blueHp=0;
+            foreach(GameObject red in playerRed){
+                redHp += red.GetComponent<Chessman>().GetHp();
+            }
+            foreach(GameObject blue in playerBlue){
+                blueHp += blue.GetComponent<Chessman>().GetHp();
+            }
+            if(redHp == blueHp){
+                Winner("Tie");
+            }else if(blueHp > redHp){
+                Winner("Blue");
+            }else if(blueHp < redHp){
+                Winner("Red");
+            }
         }
+        else
+        {
+            if(playerRed.Count == 0 && playerBlue.Count == 0){
+                Winner("Tie");
+            }else if(playerRed.Count == 0){
+                Winner("Blue");
+            }else if(playerBlue.Count == 0){
+                Winner("Red");
+            }
+        }
+        
     }
     public void Winner(string playerWinner)
     {
@@ -366,12 +403,12 @@ public class Game : MonoBehaviour
         {
             Destroy(attackPlates[i]);
         }
-        // BlueHideStatus();
+        BlueHideStatus();
     }
     public void BlueHideStatus(){
-        blueHpText.enabled = false;
-        blueAtkText.enabled = false;
-        blueDefText.enabled = false;
+        // blueHpText.enabled = false;
+        // blueAtkText.enabled = false;
+        // blueDefText.enabled = false;
         redHpText.enabled = false;
         redAtkText.enabled = false;
         redDefText.enabled = false;
@@ -772,7 +809,6 @@ public class Game : MonoBehaviour
                             //atk
                             DealDamage(enamy,enamyHp,enamyDef,weAtk);
                             //
-
 
                             Debug.Log("Red Knight attack tank");
 
@@ -1554,11 +1590,15 @@ public class Game : MonoBehaviour
 
     IEnumerator ShowRound(TMP_Text textObj, float delay)
     {
-        textObj.enabled = true;
-        textObj.SetText("Round {0}",roundCount);
-        yield return new WaitForSeconds(delay);
-        textObj.enabled = false;
+        yield return new WaitForSeconds(1);
         roundCount++;
+        if(!gameOver){
+            textObj.enabled = true;
+            textObj.SetText("Round {0}",roundCount);
+            yield return new WaitForSeconds(delay);
+            textObj.enabled = false;
+        }
+        
     }
 
     IEnumerator WaitSecord(float time)
@@ -1611,13 +1651,6 @@ public class Game : MonoBehaviour
     {
         yield return new WaitForSeconds(2);
         combatPhaseCheck = false;
-        if(!gameOver){
-            StartCoroutine(ShowRound(roundText,2f));
-            roundSound.Play();
-        }
-        ResetStat();//ResetStat ----> Set Def & Set AtkTime---------
-        SaveEnergy();//SaveEnergy ----> Fill Energy-----------------
-        attackStatusImage.enabled = false;
-        betweenRounds = false;
+        
     }
 }

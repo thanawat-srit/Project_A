@@ -814,8 +814,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 54
+  m_fontSizeBase: 54
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -4571,6 +4571,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 79977f479d79ff44a88509f76f5824d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  turnEndGame: 15
   chesspiece: {fileID: 2332794849470677497, guid: 30f58127b0649bf4aa9bff0f05e6cbcb, type: 3}
   turnBarRed: {fileID: 823589157}
   turnBarBlue: {fileID: 29876544}
@@ -4775,8 +4776,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 54
+  m_fontSizeBase: 54
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -5063,8 +5064,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 54
+  m_fontSizeBase: 54
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
