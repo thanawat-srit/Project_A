@@ -15,6 +15,7 @@ public class Chessman : MonoBehaviour
     private int _hp = 0;
     private int _atk = 0;
     private int _def = 0;
+    private int _defaultAtk = 0;
     private int _maxHp = 0;
     private int _maxDef = 0;
     private int _atkTime = 1;
@@ -127,7 +128,6 @@ public class Chessman : MonoBehaviour
         }else if (!gm.IsGameOver() && gm.GetCurrentPlayer() == player)
         {
             DestroyMovePlates();
-
             InitiateMovePlates();
         }
     }
@@ -374,6 +374,9 @@ public class Chessman : MonoBehaviour
     public int GetAtk(){
         return _atk;
     }
+    public int GetDefaultAtk(){
+        return _defaultAtk;
+    }
     public int GetDef(){
         return _def;
     }
@@ -391,6 +394,10 @@ public class Chessman : MonoBehaviour
     }
     public void SetAtk(int atk){
         this._atk = atk;
+    }
+    public void SetDefaultAtk(int defaultAtk){
+        this._defaultAtk = defaultAtk;
+        this._atk = defaultAtk;
     }
     public void SetDef(int def){
         this._def = def;

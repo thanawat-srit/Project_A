@@ -5,7 +5,7 @@ using UnityEngine;
 public class ChessTableGenerator : MonoBehaviour
 {
     public GameObject tilePrefab;
-    public int width = 16;
+    public int width = 8;
     public int length = 12;
     
 
@@ -31,6 +31,4 @@ public class ChessTableGenerator : MonoBehaviour
         gr.BoardSetYBoard(y);
         gr.BoardSetCoords();
     }
-
-    
 }

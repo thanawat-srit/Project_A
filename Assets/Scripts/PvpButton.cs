@@ -7,6 +7,8 @@ public class PvpButton : MonoBehaviour
 {
     public GameObject plateStop;
     public GameObject gameObj;
+    public GameObject adsObj;
+    
 
     public void ButtonStop(){
         Game game = gameObj.GetComponent<Game>();
@@ -42,6 +44,7 @@ public class PvpButton : MonoBehaviour
     }
 
     public void ButtonExitGame(){
-        SceneManager.LoadScene("GameModeScene");
+        SceneManager.LoadScene("MainMenuScene");
     }
+
 }

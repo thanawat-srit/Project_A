@@ -6,6 +6,7 @@ public class InterstitialAdExample : MonoBehaviour, IUnityAdsInitializationListe
     [SerializeField] string _androidGameId;
     [SerializeField] string _iOSGameId;
     [SerializeField] bool _testMode = true;
+    [SerializeField] Interstitial ads;
     private string _gameId;
  
     void Awake()
@@ -24,6 +25,7 @@ public class InterstitialAdExample : MonoBehaviour, IUnityAdsInitializationListe
     public void OnInitializationComplete()
     {
         Debug.Log("Unity Ads initialization complete.");
+        ads.LoadAd();
     }
  
     public void OnInitializationFailed(UnityAdsInitializationError error, string message)

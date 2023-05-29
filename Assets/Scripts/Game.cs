@@ -8,7 +8,7 @@ using System;
 
 public class Game : MonoBehaviour
 {
-    public int turnEndGame =15;
+    public int turnEndGame = 15;
     public GameObject chesspiece;
     public GameObject turnBarRed;
     public GameObject turnBarBlue;
@@ -16,23 +16,22 @@ public class Game : MonoBehaviour
     public GameObject barRed1,barRed2,barRed3,barRed4;
     public GameObject sBarBlue1,sBarBlue2;
     public GameObject sBarRed1,sBarRed2;
-    public Button skipBlueButton, skipRedButton;
-    public TMP_Text blueHpText, blueAtkText, blueDefText;
-    public TMP_Text redHpText, redAtkText, redDefText;
+    public GameObject endBackPlate;
+    public Button skipBlueButton, skipRedButton, buttonMenu;
+    public TMP_Text hpText, atkText, defText;
     public TMP_Text winnerText, roundText;
     public Image blueHpIcon, blueAtkIcon, blueDefIcon;
     public Image redHpIcon, redAtkIcon, redDefIcon;
-    public Image backPlate;
     public Image blueSkipStatus, redSkipStatus;
     public Image attackStatusImage;
-    public AudioSource roundSound, endSound;
+    public AudioSource roundSound, killSound, attackSound, healSound;
     public Sprite tank, knight, mage, archer, healer;
+    public Interstitial ads;
 
     private bool checkSkipBlue = false;
     private bool checkSkipRed = false;
     private bool combatPhaseCheck = false;
     private bool killInRound = false;
-    private bool betweenRounds = false;
     private int barB = 3;
     private int barR = 3;
     private int sBarB = -1;
@@ -83,7 +82,8 @@ public class Game : MonoBehaviour
             SetPosition(playerBlue[i]);
             SetPosition(playerRed[i]);
         }
-        StartCoroutine(ShowRound(roundText,2f));
+        BardBuff();
+        StartCoroutine(ShowRound(roundText));
     }
     public List<GameObject> GetPlayRedList(){
         return playerRed;
@@ -95,67 +95,30 @@ public class Game : MonoBehaviour
     public void Update()//-----------------------------------------------------------------------------------
     {
         SkipStatus();
-        CheckEndGame();
-        if(!gameOver && betweenRounds && !combatPhaseCheck){
-            StartCoroutine(ShowRound(roundText,1f));
-            roundSound.Play();
-            ResetStat();//ResetStat ----> Set Def & Set AtkTime---------
-            SaveEnergy();//SaveEnergy ----> Fill Energy-----------------
-            attackStatusImage.enabled = false;
-            betweenRounds = false;
-        }
-        if(!combatPhaseCheck){
-            BardBuff();
-        }
 
-        if (gameOver == true && Input.GetMouseButtonDown(0))
-        {
-            gameOver = false;
-            SceneManager.LoadScene("PvP");
-        }
-        if(currentPlayer=="red"){
-            skipRedButton.interactable = true;
-        }else if (currentPlayer=="blue"){
-            skipBlueButton.interactable = true;
-        }
-        if(!betweenRounds){
-            
-            if(currentPlayer == "red" && barB < 0 && barR < 0){
-                currentPlayer = "blue";
-                betweenRounds = true;
-                CombatAndPrepair();
-                PlayChangeToBlue();
-            }else if(currentPlayer == "blue" && barB < 0 && barR < 0){
-                currentPlayer = "red";
-                betweenRounds = true;
-                CombatAndPrepair();
-                PlayChangeToRed();
-            }else if(barB < 0 && checkSkipRed){
-                currentPlayer = "red";
-                betweenRounds = true;
-                CombatAndPrepair();
-                PlayChangeToRed();
-            }else if(checkSkipBlue && barR < 0 ){
-                currentPlayer = "blue";
-                betweenRounds = true;
-                CombatAndPrepair();
-                PlayChangeToBlue();
-            }else if(checkSkipBlue && checkSkipRed){
-                betweenRounds = true;
-                CombatAndPrepair();
-                
+        if(!combatPhaseCheck){
+            if(currentPlayer=="red"){
+                skipRedButton.interactable = true;
+            }else if (currentPlayer=="blue"){
+                skipBlueButton.interactable = true;
             }
-        }
-        else
-        {
+        }else{
             skipRedButton.interactable = false;
             skipBlueButton.interactable = false;
         }
-        
-        
-    }
 
-    
+    }
+    void CheckEndMovePhase(){
+        if(currentPlayer == "red" && barB < 0 && barR < 0 || barR < 0 && checkSkipBlue){
+                StartCoroutine(CombatPhase());
+                FullSwitchToBlue();
+            }else if(currentPlayer == "blue" && barB < 0 && barR < 0 || barB < 0 && checkSkipRed){
+                StartCoroutine(CombatPhase());
+                FullSwitchToRed();
+            }else if(checkSkipBlue && checkSkipRed){
+                StartCoroutine(CombatPhase());
+            }
+    }
 
     public GameObject Create(string name,string role,int hp,int atk,int def, int x, int y)
     {
@@ -163,7 +126,7 @@ public class Game : MonoBehaviour
         Chessman cm = obj.GetComponent<Chessman>(); 
         cm.name = name; 
         cm.SetHp(hp);
-        cm.SetAtk(atk);
+        cm.SetDefaultAtk(atk);
         cm.SetDef(def);
         cm.SetMaxHp(hp);
         cm.SetMaxDef(def);
@@ -209,46 +172,46 @@ public class Game : MonoBehaviour
 
     public void NextTurn()
     {
-        if (currentPlayer == "red" && barR >= 0)
-        {
-            if(!checkSkipRed && sBarR < 0){
-                barRed[barR].SetActive(false);
-                barR--;
-                if(!checkSkipBlue && barB>=0){
-                    FullSwitchToBlue();
-                }
-            }
-            else if(!checkSkipRed)
-            {
-                sBarRed[sBarR].SetActive(false);
-                sBarR--;
-                if(!checkSkipBlue && barB>=0){
-                    FullSwitchToBlue();
-                }
-            } 
-        }else if(currentPlayer == "red" && barR < 0){
-            FullSwitchToBlue();
+        switch(currentPlayer){
+            case "red" : if (barR >= 0)
+                        {
+                            if(!checkSkipRed && sBarR < 0){
+                                barRed[barR].SetActive(false);
+                                barR--;
+                                
+                            }
+                            else if(!checkSkipRed)
+                            {
+                                sBarRed[sBarR].SetActive(false);
+                                sBarR--;
+                            }
+                            if(!checkSkipBlue && barB>=0 || checkSkipRed && checkSkipBlue)
+                            {
+                                FullSwitchToBlue();
+                            }
+                        }else if(barR < 0){
+                            FullSwitchToBlue();
+                        }break;
+            case "blue" : if(barB >= 0)
+                        {
+                            if(!checkSkipBlue && sBarB < 0){
+                                barBlue[barB].SetActive(false);
+                                barB--;
+                            }
+                            else if(!checkSkipBlue)
+                            {
+                                sBarBlue[sBarB].SetActive(false);
+                                sBarB--;
+                            }
+                            if(!checkSkipRed && barR>=0 || checkSkipRed && checkSkipBlue){
+                                FullSwitchToRed();
+                            }
+                        }else if(barB < 0){
+                            FullSwitchToRed();
+                        }break;
         }
-        else if(currentPlayer == "blue" && barB >= 0)
-        {
-            if(!checkSkipBlue && sBarB < 0){
-                barBlue[barB].SetActive(false);
-                barB--;
-                if(!checkSkipRed && barR>=0){
-                    FullSwitchToRed();
-                }
-            }
-            else if(!checkSkipBlue)
-            {
-                sBarBlue[sBarB].SetActive(false);
-                sBarB--;
-                if(!checkSkipRed && barR>=0){
-                    FullSwitchToRed();
-                }
-            }
-        }else if(currentPlayer == "blue" && barB < 0){
-            FullSwitchToRed();
-        }
+        BardBuff();
+        CheckEndMovePhase();
     }
 
     public void FullSwitchToBlue(){
@@ -264,16 +227,6 @@ public class Game : MonoBehaviour
         skipBlueButton.interactable = false;
         skipRedButton.interactable = true;
         turnBarRed.SetActive(true);
-    }
-
-    
-    private void CombatAndPrepair(){
-        combatPhaseCheck = true;
-        attackStatusImage.enabled = true;
-        CombatPhase();//CombatPhase---------------------------------
-        
-        //ResetStat();//ResetStat ----> Set Def & Set AtkTime-------
-        //SaveEnergy();//SaveEnergy ----> Fill Energy---------------
     }
 
     public void SaveEnergy(){
@@ -311,7 +264,7 @@ public class Game : MonoBehaviour
         }
     }
     private void CheckEndGame(){
-        if(roundCount > turnEndGame){
+        if(roundCount >= turnEndGame){
             int redHp=0,blueHp=0;
             foreach(GameObject red in playerRed){
                 redHp += red.GetComponent<Chessman>().GetHp();
@@ -341,7 +294,7 @@ public class Game : MonoBehaviour
     }
     public void Winner(string playerWinner)
     {
-        backPlate.enabled = true;
+        endBackPlate.SetActive(true);
         winnerText.enabled = true;
         if(playerWinner == "Tie"){
             winnerText.SetText("Tie!");
@@ -350,8 +303,16 @@ public class Game : MonoBehaviour
         }else if(playerWinner == "Red"){
             winnerText.SetText("Red Win!");
         }
-        endSound.Play();
+        killSound.Play();
         gameOver = true;
+        StartCoroutine(PlayAdsAfterEnd());
+    }
+
+    IEnumerator PlayAdsAfterEnd(){
+        yield return new WaitForSeconds(3);
+        ads.ShowAd();
+        yield return new WaitForSeconds(1);
+        buttonMenu.interactable = true;
     }
 
     private void PlayChangeToBlue(){
@@ -371,17 +332,13 @@ public class Game : MonoBehaviour
         Chessman cm = chesspiece.GetComponent<Chessman>();
         cm.DestroyMovePlates();
         checkSkipBlue = true;
-        currentPlayer = "red";
-        skipBlueButton.interactable = false;
-        PlayChangeToRed();
+        NextTurn();
     }
     public void ClickButtonRed(){
         Chessman cm = chesspiece.GetComponent<Chessman>();
         cm.DestroyMovePlates();
         checkSkipRed = true;
-        currentPlayer = "blue";
-        skipRedButton.interactable = false;
-        PlayChangeToBlue();
+        NextTurn();
     }
     public int GetBarB(){
         return this.barB;
@@ -403,46 +360,31 @@ public class Game : MonoBehaviour
         {
             Destroy(attackPlates[i]);
         }
-        BlueHideStatus();
+        HideStatus();
     }
-    public void BlueHideStatus(){
-        // blueHpText.enabled = false;
-        // blueAtkText.enabled = false;
-        // blueDefText.enabled = false;
-        redHpText.enabled = false;
-        redAtkText.enabled = false;
-        redDefText.enabled = false;
+    public void HideStatus(){
+        hpText.enabled = false;
+        atkText.enabled = false;
+        defText.enabled = false;
     }
 
-    public void BlueShowStatus(GameObject gO){
+    public void ShowStatus(GameObject gO){
         string hp = gO.GetComponent<Chessman>().GetHp().ToString();
         string atk = gO.GetComponent<Chessman>().GetAtk().ToString();
         string def = gO.GetComponent<Chessman>().GetDef().ToString();
-        blueHpText.enabled = true;
-        blueAtkText.enabled = true;
-        blueDefText.enabled = true;
-        blueHpText.SetText(hp);
-        blueAtkText.SetText(atk);
-        blueDefText.SetText(def);
-    }
-
-    public void RedShowStatus(GameObject gO){
-        string hp = gO.GetComponent<Chessman>().GetHp().ToString();
-        string atk = gO.GetComponent<Chessman>().GetAtk().ToString();
-        string def = gO.GetComponent<Chessman>().GetDef().ToString();
-        redHpText.enabled = true;
-        redAtkText.enabled = true;
-        redDefText.enabled = true;
-        redHpText.SetText(hp);
-        redAtkText.SetText(atk);
-        redDefText.SetText(def);
+        hpText.enabled = true;
+        atkText.enabled = true;
+        defText.enabled = true;
+        hpText.SetText(hp);
+        atkText.SetText(atk);
+        defText.SetText(def);
     }
 
     public void FindBlueTank(){
         foreach(GameObject go in playerBlue){
             if(go.name == "blue_tank"){
                 go.GetComponent<Chessman>().SurroundAttackPlate();
-                BlueShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
@@ -450,7 +392,7 @@ public class Game : MonoBehaviour
         foreach(GameObject go in playerBlue){
             if(go.name == "blue_knight"){
                 go.GetComponent<Chessman>().SurroundAttackPlate();
-                BlueShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
@@ -458,7 +400,7 @@ public class Game : MonoBehaviour
         foreach(GameObject go in playerBlue){
             if(go.name == "blue_mage"){
                 go.GetComponent<Chessman>().MageAttackPlate();
-                BlueShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
@@ -466,7 +408,7 @@ public class Game : MonoBehaviour
         foreach(GameObject go in playerBlue){
             if(go.name == "blue_archer"){
                 go.GetComponent<Chessman>().ArcherAttackPlate();
-                BlueShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
@@ -474,7 +416,7 @@ public class Game : MonoBehaviour
         foreach(GameObject go in playerBlue){
             if(go.name == "blue_healer"){
                 go.GetComponent<Chessman>().HealerAttackPlate();
-                BlueShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
@@ -482,7 +424,7 @@ public class Game : MonoBehaviour
         foreach(GameObject go in playerBlue){
             if(go.name == "blue_bard"){
                 go.GetComponent<Chessman>().BardAttackPlate();
-                BlueShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
@@ -490,7 +432,7 @@ public class Game : MonoBehaviour
         foreach(GameObject go in playerRed){
             if(go.name == "red_tank"){
                 go.GetComponent<Chessman>().SurroundAttackPlate();
-                RedShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
@@ -498,7 +440,7 @@ public class Game : MonoBehaviour
         foreach(GameObject go in playerRed){
             if(go.name == "red_knight"){
                 go.GetComponent<Chessman>().SurroundAttackPlate();
-                RedShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
@@ -506,7 +448,7 @@ public class Game : MonoBehaviour
         foreach(GameObject go in playerRed){
             if(go.name == "red_mage"){
                 go.GetComponent<Chessman>().MageAttackPlate();
-                RedShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
@@ -514,7 +456,7 @@ public class Game : MonoBehaviour
         foreach(GameObject go in playerRed){
             if(go.name == "red_archer"){
                 go.GetComponent<Chessman>().ArcherAttackPlate();
-                RedShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
@@ -522,7 +464,7 @@ public class Game : MonoBehaviour
         foreach(GameObject go in playerRed){
             if(go.name == "red_healer"){
                 go.GetComponent<Chessman>().HealerAttackPlate();
-                RedShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
@@ -530,33 +472,26 @@ public class Game : MonoBehaviour
         foreach(GameObject go in playerRed){
             if(go.name == "red_bard"){
                 go.GetComponent<Chessman>().BardAttackPlate();
-                RedShowStatus(go);
+                ShowStatus(go);
             }
         }
     }
-
-    public void CombatPhase(){
-        // BardBuff();
-        KnightAttack();
-        // TankAttack();
-        // ArcherAttack();
-        // MageAttack();
-        // HealerHeal();
-        
-    }
-
     public void ResetStat(){
         foreach(GameObject blue in playerBlue){
             Chessman gO = blue.GetComponent<Chessman>();
             int maxDef = gO.GetMaxDef();
+            int defaultAtk = gO.GetDefaultAtk();
             gO.SetDef(maxDef);
             gO.SetAtkTime(1);
+            gO.SetAtk(defaultAtk);
         }
         foreach(GameObject red in playerRed){
             Chessman gO = red.GetComponent<Chessman>();
             int maxDef = gO.GetMaxDef();
+            int defaultAtk = gO.GetDefaultAtk();
             gO.SetDef(maxDef);
             gO.SetAtkTime(1);
+            gO.SetAtk(defaultAtk);
         }
     }
 
@@ -612,6 +547,10 @@ public class Game : MonoBehaviour
                 killInRound = true;
             }
         }
+        if(killInRound){
+            killSound.Play();
+            killInRound = false;
+        }
     }
     public void Healing(GameObject ally,int allyHp, int allyMaxHp, int weAtk){
         int Heal=0;
@@ -631,91 +570,84 @@ public class Game : MonoBehaviour
 
     public void DealDamageAOE(GameObject we, int weAtk,int xTarget, int yTarget){
         string team = we.GetComponent<Chessman>().GetPlayerTeam();
+        switch(team){
+            case "blue":foreach(GameObject sideEnamy in playerRed){
+                            int xSideTarget = sideEnamy.GetComponent<Chessman>().GetXBoard();
+                            int ySideTarget = sideEnamy.GetComponent<Chessman>().GetYBoard();
+                            int targetHp = sideEnamy.GetComponent<Chessman>().GetHp();
+                            int targetDef =sideEnamy.GetComponent<Chessman>().GetDef();
 
-        if(team == "blue"){
-            foreach(GameObject sideEnamy in playerRed){
-                int xSideTarget = sideEnamy.GetComponent<Chessman>().GetXBoard();
-                int ySideTarget = sideEnamy.GetComponent<Chessman>().GetYBoard();
-                int targetHp = sideEnamy.GetComponent<Chessman>().GetHp();
-                int targetDef =sideEnamy.GetComponent<Chessman>().GetDef();
-
-                if(xSideTarget == xTarget && ySideTarget+1 == yTarget ||
-                xSideTarget == xTarget+1 && ySideTarget == yTarget ||
-                xSideTarget == xTarget && ySideTarget-1 == yTarget ||
-                xSideTarget == xTarget-1 && ySideTarget == yTarget ){
-                    DealDamage(sideEnamy,targetHp,targetDef,weAtk-1);
-                }
-            }
-        }
-        
-        if(team == "red"){
-            foreach(GameObject sideEnamy in playerBlue){
-                int xSideTarget = sideEnamy.GetComponent<Chessman>().GetXBoard();
-                int ySideTarget = sideEnamy.GetComponent<Chessman>().GetYBoard();
-                int targetHp = sideEnamy.GetComponent<Chessman>().GetHp();
-                int targetDef =sideEnamy.GetComponent<Chessman>().GetDef();
-                
-                if(xSideTarget == xTarget && ySideTarget+1 == yTarget ||
-                xSideTarget == xTarget+1 && ySideTarget == yTarget ||
-                xSideTarget == xTarget && ySideTarget-1 == yTarget ||
-                xSideTarget == xTarget-1 && ySideTarget == yTarget ){
-                    DealDamage(sideEnamy,targetHp,targetDef,weAtk-1);
-                }
-            }
+                            if(xSideTarget == xTarget && ySideTarget+1 == yTarget ||
+                            xSideTarget == xTarget+1 && ySideTarget == yTarget ||
+                            xSideTarget == xTarget && ySideTarget-1 == yTarget ||
+                            xSideTarget == xTarget-1 && ySideTarget == yTarget ){
+                                DealDamage(sideEnamy,targetHp,targetDef,weAtk-1);
+                            
+                            }
+                        }break;
+            case "red" :foreach(GameObject sideEnamy in playerBlue){
+                            int xSideTarget = sideEnamy.GetComponent<Chessman>().GetXBoard();
+                            int ySideTarget = sideEnamy.GetComponent<Chessman>().GetYBoard();
+                            int targetHp = sideEnamy.GetComponent<Chessman>().GetHp();
+                            int targetDef =sideEnamy.GetComponent<Chessman>().GetDef();
+                            
+                            if(xSideTarget == xTarget && ySideTarget+1 == yTarget ||
+                            xSideTarget == xTarget+1 && ySideTarget == yTarget ||
+                            xSideTarget == xTarget && ySideTarget-1 == yTarget ||
+                            xSideTarget == xTarget-1 && ySideTarget == yTarget ){
+                                DealDamage(sideEnamy,targetHp,targetDef,weAtk-1);
+                            }
+                        }break;
         }
     }
 
     public void AttackZone(int matrixX, int matrixY,ref List<GameObject> enamies, GameObject we)
     {
-
         string team = we.GetComponent<Chessman>().GetPlayerTeam();
-
-        if(team == "blue"){
-            foreach(GameObject go in playerRed){
-                if(go.GetComponent<Chessman>().GetXBoard() == matrixX && 
-                    go.GetComponent<Chessman>().GetYBoard() == matrixY)
-                {
-                    enamies.Add(go);
-                }
-            }
-        }else if(team == "red"){
-            foreach(GameObject go in playerBlue){
-                if(go.GetComponent<Chessman>().GetXBoard() == matrixX && 
-                    go.GetComponent<Chessman>().GetYBoard() == matrixY)
-                {
-                    enamies.Add(go);
-                }
-            }
+        switch(team){
+            case "blue":foreach(GameObject go in playerRed){
+                            if(go.GetComponent<Chessman>().GetXBoard() == matrixX && 
+                                go.GetComponent<Chessman>().GetYBoard() == matrixY)
+                            {
+                                enamies.Add(go);
+                            }
+                        }break;
+            case "red" :foreach(GameObject go in playerBlue){
+                            if(go.GetComponent<Chessman>().GetXBoard() == matrixX && 
+                                go.GetComponent<Chessman>().GetYBoard() == matrixY)
+                            {
+                                enamies.Add(go);
+                            }
+                        }break;
         }
     }
 
     public void BuffZone(int matrixX, int matrixY,ref List<GameObject> allies, GameObject we)
     {
-
         string team = we.GetComponent<Chessman>().GetPlayerTeam();
-
-        if(team == "blue"){
-            foreach(GameObject go in playerBlue){
-                if(go.GetComponent<Chessman>().GetXBoard() == matrixX && 
-                    go.GetComponent<Chessman>().GetYBoard() == matrixY)
-                {
-                    allies.Add(go);
-                }
-            }
-        }else if(team == "red"){
-            foreach(GameObject go in playerRed){
-                if(go.GetComponent<Chessman>().GetXBoard() == matrixX && 
-                    go.GetComponent<Chessman>().GetYBoard() == matrixY)
-                {
-                    allies.Add(go);
-                }
-            }
+        switch(team){
+            case "blue":foreach(GameObject go in playerBlue){
+                            if(go.GetComponent<Chessman>().GetXBoard() == matrixX && 
+                                go.GetComponent<Chessman>().GetYBoard() == matrixY)
+                            {
+                                allies.Add(go);
+                            }
+                        }break;
+            case "red":foreach(GameObject go in playerRed){
+                            if(go.GetComponent<Chessman>().GetXBoard() == matrixX && 
+                                go.GetComponent<Chessman>().GetYBoard() == matrixY)
+                            {
+                                allies.Add(go);
+                            }
+                        }break;
         }
     }
 
     public void KnightAttack(){
         Debug.Log("KnightAttack");
         attackStatusImage.sprite = knight;
+        bool actionCheck = false;
+        
         List<GameObject> redEnamies = new List<GameObject>();
         List<GameObject> blueEnamies = new List<GameObject>();
         
@@ -743,11 +675,9 @@ public class Game : MonoBehaviour
                         int weAtk = cm.GetAtk();
 
                         if(enamy.GetComponent<Chessman>().GetRole() == "tank"){
-                            
                             //atk
-                            DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                            DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                             //
-
                             Debug.Log("Blue Knight attack tank");
                             BlueAtkTime = 0;
                             break;
@@ -766,9 +696,8 @@ public class Game : MonoBehaviour
                             int weAtk = we.GetComponent<Chessman>().GetAtk();
                             if(cHp == enamyHp){
                                 //atk
-                                DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                                DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                                 //
-
                                 Debug.Log("Blue Knight attack low hp");
                                 BlueAtkTime = 0;
                                 break;
@@ -805,11 +734,9 @@ public class Game : MonoBehaviour
                         int weAtk = we.GetComponent<Chessman>().GetAtk();
                         
                         if(enamy.GetComponent<Chessman>().GetRole() == "tank"){
-                            
                             //atk
-                            DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                            DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                             //
-
                             Debug.Log("Red Knight attack tank");
 
                             RedAtkTime = 0;
@@ -829,9 +756,8 @@ public class Game : MonoBehaviour
                             int weAtk = we.GetComponent<Chessman>().GetAtk();
                             if(cHp == enamyHp){
                             //atk
-                            DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                            DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                             //
-
                             Debug.Log("Red Knight attack low hp");
 
                             RedAtkTime = 0;
@@ -842,11 +768,13 @@ public class Game : MonoBehaviour
                 }
             }
         }
-        StartCoroutine(WaitKnight());
+        if(actionCheck)attackSound.Play();
+        CheckDeadChess();
     }
 
     public void TankAttack(){
         attackStatusImage.sprite = tank;
+        bool actionCheck = false;
         Debug.Log("TankAttack");
         List<GameObject> redEnamies = new List<GameObject>();
         List<GameObject> blueEnamies = new List<GameObject>();
@@ -875,11 +803,9 @@ public class Game : MonoBehaviour
                         int weAtk = cm.GetAtk();
 
                         if(enamy.GetComponent<Chessman>().GetRole() == "tank"){
-                            
                             //atk
-                            DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                            DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                             //
-
                             Debug.Log("Blue Tank attack tank");
                             BlueAtkTime = 0;
                             break;
@@ -898,9 +824,8 @@ public class Game : MonoBehaviour
                             int weAtk = we.GetComponent<Chessman>().GetAtk();
                             if(cHp == enamyHp){
                             //atk
-                            DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                            DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                             //
-
                             Debug.Log("Blue Tank attack low hp");
                             BlueAtkTime = 0;
                             break;
@@ -937,14 +862,10 @@ public class Game : MonoBehaviour
                         int weAtk = we.GetComponent<Chessman>().GetAtk();
                         
                         if(enamy.GetComponent<Chessman>().GetRole() == "tank"){
-                            
                             //atk
-                            DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                            DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                             //
-
-
                             Debug.Log("Red Tank attack tank");
-
                             RedAtkTime = 0;
                             break;
                         }
@@ -962,25 +883,24 @@ public class Game : MonoBehaviour
                             int weAtk = we.GetComponent<Chessman>().GetAtk();
                             if(cHp == enamyHp){
                             //atk
-                            DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                            DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                             //
-
                             Debug.Log("Red Tank attack low hp");
-
                             RedAtkTime = 0;
                             break;
                             }
                         }
                     }
                 }
-                
             }
         }
-        StartCoroutine(WaitTank());
+        if(actionCheck)attackSound.Play();
+        CheckDeadChess();
     }
 
     public void ArcherAttack(){
         attackStatusImage.sprite = archer;
+        bool actionCheck = false;
         Debug.Log("ArcherAttack");
         List<GameObject> redEnamies = new List<GameObject>();
         List<GameObject> blueEnamies = new List<GameObject>();
@@ -1000,7 +920,7 @@ public class Game : MonoBehaviour
                 AttackZone(x + 3, y + 0,ref redEnamies,we);
                 AttackZone(x + 2, y - 1,ref redEnamies,we);
                 AttackZone(x + 2, y - 2,ref redEnamies,we);
-                AttackZone(x - 1, y - 2,ref redEnamies,we);
+                AttackZone(x + 1, y - 2,ref redEnamies,we);
                 AttackZone(x + 0, y - 3,ref redEnamies,we);
                 AttackZone(x - 1, y - 2,ref redEnamies,we);
                 AttackZone(x - 2, y - 2,ref redEnamies,we);
@@ -1020,7 +940,7 @@ public class Game : MonoBehaviour
                             
                             for(int i=0;i<BlueAtkTime;i++){
                                 //atk
-                                DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                                DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                                 //
                             }
 
@@ -1043,7 +963,7 @@ public class Game : MonoBehaviour
                             if(cHp == enamyHp){
                             for(int i=0;i<BlueAtkTime;i++){
                                 //atk
-                                DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                                DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                                 //
                             }
                             Debug.Log("Blue Archer attack low hp");
@@ -1053,7 +973,6 @@ public class Game : MonoBehaviour
                         }
                     }
                 }
-                
             }
         }
 
@@ -1072,7 +991,7 @@ public class Game : MonoBehaviour
                 AttackZone(x + 3, y + 0,ref blueEnamies,we);
                 AttackZone(x + 2, y - 1,ref blueEnamies,we);
                 AttackZone(x + 2, y - 2,ref blueEnamies,we);
-                AttackZone(x - 1, y - 2,ref blueEnamies,we);
+                AttackZone(x + 1, y - 2,ref blueEnamies,we);
                 AttackZone(x + 0, y - 3,ref blueEnamies,we);
                 AttackZone(x - 1, y - 2,ref blueEnamies,we);
                 AttackZone(x - 2, y - 2,ref blueEnamies,we);
@@ -1093,7 +1012,7 @@ public class Game : MonoBehaviour
                             
                             for(int i=0;i<RedAtkTime;i++){
                                 //atk
-                                DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                                DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                                 //
                             }
 
@@ -1118,26 +1037,26 @@ public class Game : MonoBehaviour
 
                             for(int i=0;i<RedAtkTime;i++){
                                 //atk
-                                DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                                DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                                 //
                             }
 
                             Debug.Log("Red Archer attack low hp");
-
                             RedAtkTime = 0;
                             break;
                             }
                         }
                     }
                 }
-                
             }
         }
-        StartCoroutine(WaitArcher());
+        if(actionCheck)attackSound.Play();
+        CheckDeadChess();
     }
 
     public void MageAttack(){
         attackStatusImage.sprite = mage;
+        bool actionCheck = false;
         Debug.Log("MageAttack");
         List<GameObject> redEnamies = new List<GameObject>();
         List<GameObject> blueEnamies = new List<GameObject>();
@@ -1155,7 +1074,7 @@ public class Game : MonoBehaviour
                 AttackZone(x + 2, y + 1,ref redEnamies,we);
                 AttackZone(x + 2, y + 0,ref redEnamies,we);
                 AttackZone(x + 2, y - 1,ref redEnamies,we);
-                AttackZone(x - 1, y - 2,ref redEnamies,we);
+                AttackZone(x + 1, y - 2,ref redEnamies,we);
                 AttackZone(x + 0, y - 2,ref redEnamies,we);
                 AttackZone(x - 1, y - 2,ref redEnamies,we);
                 AttackZone(x - 2, y - 1,ref redEnamies,we);
@@ -1173,7 +1092,7 @@ public class Game : MonoBehaviour
                             int xTarget = enamy.GetComponent<Chessman>().GetXBoard();
                             int yTarget = enamy.GetComponent<Chessman>().GetYBoard();
                             //atk
-                            DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                            DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                             //AOE
                             DealDamageAOE(we,weAtk,xTarget,yTarget);
 
@@ -1198,7 +1117,7 @@ public class Game : MonoBehaviour
                             int xTarget = enamy.GetComponent<Chessman>().GetXBoard();
                             int yTarget = enamy.GetComponent<Chessman>().GetYBoard();
                             //atk
-                            DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                            DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                             //AOE
                             DealDamageAOE(we,weAtk,xTarget,yTarget);
 
@@ -1209,7 +1128,6 @@ public class Game : MonoBehaviour
                         }
                     }
                 }
-                
             }
         }
 
@@ -1226,7 +1144,7 @@ public class Game : MonoBehaviour
                 AttackZone(x + 2, y + 1,ref blueEnamies,we);
                 AttackZone(x + 2, y + 0,ref blueEnamies,we);
                 AttackZone(x + 2, y - 1,ref blueEnamies,we);
-                AttackZone(x - 1, y - 2,ref blueEnamies,we);
+                AttackZone(x + 1, y - 2,ref blueEnamies,we);
                 AttackZone(x + 0, y - 2,ref blueEnamies,we);
                 AttackZone(x - 1, y - 2,ref blueEnamies,we);
                 AttackZone(x - 2, y - 1,ref blueEnamies,we);
@@ -1246,12 +1164,11 @@ public class Game : MonoBehaviour
                         int xTarget = enamy.GetComponent<Chessman>().GetXBoard();
                         int yTarget = enamy.GetComponent<Chessman>().GetYBoard();
                         //atk
-                        DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                        DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                         //AOE
                         DealDamageAOE(we,weAtk,xTarget,yTarget);
 
                         Debug.Log("Red Mage attack tank");
-
                         RedAtkTime = 0;
                         break;
                     }
@@ -1272,12 +1189,11 @@ public class Game : MonoBehaviour
                                 int xTarget = enamy.GetComponent<Chessman>().GetXBoard();
                                 int yTarget = enamy.GetComponent<Chessman>().GetYBoard();
                                 //atk
-                                DealDamage(enamy,enamyHp,enamyDef,weAtk);
+                                DealDamage(enamy,enamyHp,enamyDef,weAtk);actionCheck = true;
                                 //AOE
                                 DealDamageAOE(we,weAtk,xTarget,yTarget);
 
                                 Debug.Log("Red Mage attack low hp");
-
                                 RedAtkTime = 0;
                                 break;
                             }
@@ -1286,12 +1202,13 @@ public class Game : MonoBehaviour
                 }
             }
         }
-        StartCoroutine(WaitMage());
-        
+        if(actionCheck)attackSound.Play();
+        CheckDeadChess();       
     }
 
     public void HealerHeal(){
         attackStatusImage.sprite = healer;
+        bool actionCheck = false;
         Debug.Log("HealerHeal");
         List<GameObject> blueAllies = new List<GameObject>();
         List<GameObject> redAllies = new List<GameObject>();
@@ -1305,6 +1222,7 @@ public class Game : MonoBehaviour
                 int x = cm.GetXBoard();
                 int y = cm.GetYBoard();
                 //HealRange
+                    BuffZone(x + 0, y + 0,ref blueAllies,we);
                     BuffZone(x + 0, y + 1,ref blueAllies,we);
                     BuffZone(x + 0, y - 1,ref blueAllies,we);
                     BuffZone(x - 1, y + 0,ref blueAllies,we);
@@ -1320,7 +1238,7 @@ public class Game : MonoBehaviour
                     BuffZone(x + 2, y + 0,ref blueAllies,we);
                     BuffZone(x + 2, y - 1,ref blueAllies,we);
                     BuffZone(x + 2, y - 2,ref blueAllies,we);
-                    BuffZone(x - 1, y - 2,ref blueAllies,we);
+                    BuffZone(x + 1, y - 2,ref blueAllies,we);
                     BuffZone(x + 0, y - 2,ref blueAllies,we);
                     BuffZone(x - 1, y - 2,ref blueAllies,we);
                     BuffZone(x - 2, y - 2,ref blueAllies,we);
@@ -1331,26 +1249,24 @@ public class Game : MonoBehaviour
                     BuffZone(x - 1, y + 2,ref blueAllies,we);
                 if(blueAllies != null){
                     for(int i=0;i<BlueAtkTime;i++){
-                        int saveLostHp = 0;
+                        int maxLostHp = 0;
                         foreach(GameObject ally in blueAllies){//Check allies complete
                             int allyHp = ally.GetComponent<Chessman>().GetHp();
                             int allyMaxHp = ally.GetComponent<Chessman>().GetMaxHp();
                             int lostHp = allyMaxHp - allyHp;
                             
-                            if(lostHp > 0 && saveLostHp < lostHp){
-                                saveLostHp = lostHp;
+                            if(lostHp > 0 && maxLostHp < lostHp){
+                                maxLostHp = lostHp;
                             }
                         }
                         foreach(GameObject ally in blueAllies){
                             int allyHp = ally.GetComponent<Chessman>().GetHp();
                             int allyMaxHp = ally.GetComponent<Chessman>().GetMaxHp();
                             int weAtk = cm.GetAtk();
-                            if(saveLostHp == allyMaxHp - allyHp && saveLostHp != 0){
-                                
+                            if(maxLostHp == allyMaxHp - allyHp && maxLostHp != 0){
                                 //Heal
-                                Healing(ally,allyHp,allyMaxHp,weAtk);
+                                Healing(ally,allyHp,allyMaxHp,weAtk);actionCheck = true;
                                 //
-                            
                             Debug.Log("Blue Healer Healing low hp");
                             break;
                             }
@@ -1370,6 +1286,7 @@ public class Game : MonoBehaviour
                 int x = cm.GetXBoard();
                 int y = cm.GetYBoard();
                 //HealRange
+                    BuffZone(x + 0, y + 0,ref redAllies,we);
                     BuffZone(x + 0, y + 1,ref redAllies,we);
                     BuffZone(x + 0, y - 1,ref redAllies,we);
                     BuffZone(x - 1, y + 0,ref redAllies,we);
@@ -1385,7 +1302,7 @@ public class Game : MonoBehaviour
                     BuffZone(x + 2, y + 0,ref redAllies,we);
                     BuffZone(x + 2, y - 1,ref redAllies,we);
                     BuffZone(x + 2, y - 2,ref redAllies,we);
-                    BuffZone(x - 1, y - 2,ref redAllies,we);
+                    BuffZone(x + 1, y - 2,ref redAllies,we);
                     BuffZone(x + 0, y - 2,ref redAllies,we);
                     BuffZone(x - 1, y - 2,ref redAllies,we);
                     BuffZone(x - 2, y - 2,ref redAllies,we);
@@ -1397,26 +1314,24 @@ public class Game : MonoBehaviour
 
                 if(redAllies != null){
                     for(int i=0;i<RedAtkTime;i++){
-                        int saveLostHp = 0;
+                        int maxLostHp = 0;
                         foreach(GameObject ally in redAllies){//Check allies complete
                             int allyHp = ally.GetComponent<Chessman>().GetHp();
                             int allyMaxHp = ally.GetComponent<Chessman>().GetMaxHp();
                             int lostHp = allyMaxHp - allyHp;
 
-                            if(lostHp > 0 && saveLostHp < lostHp){
-                                saveLostHp = lostHp;
+                            if(lostHp > 0 && maxLostHp < lostHp){
+                                maxLostHp = lostHp;
                             }
                         }
                         foreach(GameObject ally in redAllies){
                             int allyHp = ally.GetComponent<Chessman>().GetHp();
                             int allyMaxHp = ally.GetComponent<Chessman>().GetMaxHp();
                             int weAtk = cm.GetAtk();
-                            if(saveLostHp == allyMaxHp - allyHp && saveLostHp != 0){
-                                
+                            if(maxLostHp == allyMaxHp - allyHp && maxLostHp != 0){
                                 //Heal
-                                Healing(ally,allyHp,allyMaxHp,weAtk);
+                                Healing(ally,allyHp,allyMaxHp,weAtk);actionCheck = true;
                                 //
-                            
                             Debug.Log("Red Healer Healing low hp");
                             break;
                             }
@@ -1425,7 +1340,7 @@ public class Game : MonoBehaviour
                 }
             }
         }
-        StartCoroutine(WaitHealer());
+        if(actionCheck)healSound.Play();
     }
 
     public void BardBuff(){
@@ -1459,7 +1374,7 @@ public class Game : MonoBehaviour
                     BuffZone(x + 2, y + 1,ref blueAllies,we);
                     BuffZone(x + 2, y + 0,ref blueAllies,we);
                     BuffZone(x + 2, y - 1,ref blueAllies,we);
-                    BuffZone(x - 1, y - 2,ref blueAllies,we);
+                    BuffZone(x + 1, y - 2,ref blueAllies,we);
                     BuffZone(x + 0, y - 2,ref blueAllies,we);
                     BuffZone(x - 1, y - 2,ref blueAllies,we);
                     BuffZone(x - 2, y - 1,ref blueAllies,we);
@@ -1504,10 +1419,6 @@ public class Game : MonoBehaviour
                         }
                     }
                 }
-                
-                
-
-                //Debug.Log("Blue Bard Buff All Allies");
             }
         }
 
@@ -1537,7 +1448,7 @@ public class Game : MonoBehaviour
                     BuffZone(x + 2, y + 1,ref redAllies,we);
                     BuffZone(x + 2, y + 0,ref redAllies,we);
                     BuffZone(x + 2, y - 1,ref redAllies,we);
-                    BuffZone(x - 1, y - 2,ref redAllies,we);
+                    BuffZone(x + 1, y - 2,ref redAllies,we);
                     BuffZone(x + 0, y - 2,ref redAllies,we);
                     BuffZone(x - 1, y - 2,ref redAllies,we);
                     BuffZone(x - 2, y - 1,ref redAllies,we);
@@ -1582,75 +1493,47 @@ public class Game : MonoBehaviour
                         }
                     }
                 }
-                
-                //Debug.Log("Red Bard Buff All Allies");
             }
         }
     }
 
-    IEnumerator ShowRound(TMP_Text textObj, float delay)
+    IEnumerator ShowRound(TMP_Text textObj)
     {
-        yield return new WaitForSeconds(1);
         roundCount++;
+        roundSound.Play();
         if(!gameOver){
             textObj.enabled = true;
             textObj.SetText("Round {0}",roundCount);
-            yield return new WaitForSeconds(delay);
+            yield return new WaitForSeconds(1);
             textObj.enabled = false;
         }
-        
     }
 
-    IEnumerator WaitSecord(float time)
-    {
-        yield return new WaitForSeconds(time);
-        
-    }
-    IEnumerator WaitKnight()
-    {
+    IEnumerator CombatPhase(){
+        combatPhaseCheck = true;
+        attackStatusImage.enabled = true;
+        // BardBuff();
+        KnightAttack();
         yield return new WaitForSeconds(2);
-        CheckDeadChess();
-        if(killInRound){
-            endSound.Play();
-            killInRound = false;
-        }
         TankAttack();
-    }
-    IEnumerator WaitTank()
-    {
         yield return new WaitForSeconds(2);
-        CheckDeadChess();
-        if(killInRound){
-            endSound.Play();
-            killInRound = false;
-        }
         ArcherAttack();
-    }
-    IEnumerator WaitArcher()
-    {
         yield return new WaitForSeconds(2);
-        CheckDeadChess();
-        if(killInRound){
-            endSound.Play();
-            killInRound = false;
-        }
         MageAttack();
-        
-    }
-    IEnumerator WaitMage()
-    {
         yield return new WaitForSeconds(2);
-        CheckDeadChess();
-        if(killInRound){
-            endSound.Play();
-            killInRound = false;
-        }
         HealerHeal();
-    }
-    IEnumerator WaitHealer()
-    {
         yield return new WaitForSeconds(2);
+        attackStatusImage.enabled = false;
         combatPhaseCheck = false;
-        
+
+        CheckEndGame();
+        PreparePhase();
+    }
+    void PreparePhase(){
+        if(!gameOver){
+                StartCoroutine(ShowRound(roundText));
+                ResetStat();//ResetStat ----> Set Def & Set AtkTime---------
+                SaveEnergy();//SaveEnergy ----> Fill Energy-----------------
+            }
     }
 }

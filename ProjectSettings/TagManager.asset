@@ -8,6 +8,7 @@ TagManager:
   - ChessMan
   - AttackPlate
   - WinnerText
+  - BGMusic
   layers:
   - Default
   - TransparentFX
